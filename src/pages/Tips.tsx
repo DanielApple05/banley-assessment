@@ -7,7 +7,7 @@ import {
   RestaurantService,
   type Restaurant,
 } from "@/services/restaurant.service";
-import { Plus } from "lucide-react";
+import { Plus, Eye, Pencil, Trash2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +30,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 export function Tips() {
   const [calculations, setCalculations] = useState<TipCalculation[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -41,6 +50,10 @@ export function Tips() {
   const [billAmount, setBillAmount] = useState("");
   const [numberOfPeople, setNumberOfPeople] = useState("1");
   const [selectedFilter, setSelectedFilter] = useState<number | null>(null);
+  const [isViewSheetOpen, setIsViewSheetOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedCalculation, setSelectedCalculation] =
+    useState<TipCalculation | null>(null);
 
   const getRestaurant = (restaurantId: number) => {
     return restaurants.find((restaurant) => restaurant.id === restaurantId);
@@ -74,7 +87,7 @@ export function Tips() {
   const totalVisits = calculations.length;
 
   const averageTipAmount = totalVisits > 0 ? totalTips / totalVisits : 0;
-  
+
   const filteredCalculations =
     selectedFilter === null
       ? calculations
@@ -234,7 +247,50 @@ export function Tips() {
 
                     <TableCell>{calculation.numberOfPeople}</TableCell>
 
-                    <TableCell className="text-right">Actions</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+
+                          <DropdownMenuSeparator />
+
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedCalculation(calculation);
+                              setIsEditMode(false);
+                              setIsViewSheetOpen(true);
+                            }}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedCalculation(calculation);
+                              setIsEditMode(true);
+                              setIsViewSheetOpen(true);
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+
+                          <DropdownMenuSeparator />
+
+                          <DropdownMenuItem className="text-red-500">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -302,6 +358,107 @@ export function Tips() {
               Calculate & Save
             </Button>
           </div>
+        </SheetContent>
+      </Sheet>
+      <Sheet open={isViewSheetOpen} onOpenChange={setIsViewSheetOpen}>
+        <SheetContent className="w-full sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{isEditMode ? "Edit Tip" : "View Tip"}</SheetTitle>
+
+            <SheetDescription>
+              {isEditMode
+                ? "Update this tip calculation."
+                : "View tip calculation details."}
+            </SheetDescription>
+          </SheetHeader>
+
+          {selectedCalculation && (
+            <div className="space-y-4 p-4">
+              <div className="space-y-2">
+                <Label>Restaurant</Label>
+                <Input
+                  disabled
+                  value={
+                    getRestaurant(selectedCalculation.restaurantId)?.name ?? ""
+                  }
+                />
+              </div>
+
+              <div className="flex justify-between gap-5">
+                <div className="space-y-2">
+                  <Label>Tip Percentage</Label>
+                  <Input disabled value={selectedCalculation.tipPercentage} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Total Tip</Label>
+                  <Input disabled value={selectedCalculation.totalTip} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>People</Label>
+                <Input
+                  type="number"
+                  disabled={!isEditMode}
+                  value={selectedCalculation.numberOfPeople}
+                  onChange={(e) =>
+                    setSelectedCalculation({
+                      ...selectedCalculation,
+                      numberOfPeople: Number(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Per Person</Label>
+                <Input disabled value={selectedCalculation.perPerson} />
+              </div>
+
+              <div className="flex justify-between gap-5">
+                <div className="space-y-2">
+                  <Label>Bill Amount</Label>
+                  <Input
+                    type="number"
+                    disabled={!isEditMode}
+                    value={selectedCalculation.billAmount}
+                    onChange={(e) =>
+                      setSelectedCalculation({
+                        ...selectedCalculation,
+                        billAmount: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Total Bill</Label>
+                  <Input disabled value={selectedCalculation.totalBill} />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                {isEditMode ? (
+                  <Button className="flex-1">Save Changes</Button>
+                ) : (
+                  <Button
+                    className="flex-1"
+                    onClick={() => setIsEditMode(true)}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+
+                <Button
+                  variant="outline"
+                  onClick={() => setIsViewSheetOpen(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </div>
