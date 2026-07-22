@@ -9,6 +9,8 @@ import {
 } from "@/services/restaurant.service";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Tips() {
   const [calculations, setCalculations] = useState<TipCalculation[]>([]);
@@ -60,9 +62,57 @@ export function Tips() {
         </Button>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard
+          title="Total Tips"
+          value={loading ? undefined : totalTips.toFixed(2)}
+          description="Sum of all tip amounts"
+          loading={loading}
+        />
+
+        <StatCard
+          title="Average Tip Amount"
+          value={loading ? undefined : averageTipAmount.toFixed(2)}
+          description="Average tip per visit"
+          loading={loading}
+        />
+
+        <StatCard
+          title="Total Visits"
+          value={loading ? undefined : totalVisits}
+          description="Total tip calculations"
+          loading={loading}
+        />
+      </div>
+
       <div className="rounded-lg border bg-card p-12 text-center text-muted-foreground">
         Tip history coming soon...
       </div>
     </div>
+  );
+}
+
+interface StatCardProps {
+  title: string;
+  value?: string | number;
+  description: string;
+  loading: boolean;
+}
+
+function StatCard({ title, value, description, loading }: StatCardProps) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-8 w-20" />
+        ) : (
+          <div className="text-2xl font-bold">{value ?? 0}</div>
+        )}
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      </CardContent>
+    </Card>
   );
 }
