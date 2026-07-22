@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   CalculationService,
   type TipCalculation,
@@ -54,6 +55,11 @@ export function Tips() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedCalculation, setSelectedCalculation] =
     useState<TipCalculation | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+
+  const formatCurrency = (currency: string | undefined, amount: number) =>
+    `${currency ?? ""} ${amount.toFixed(2)}`;
 
   const getRestaurant = (restaurantId: number) => {
     return restaurants.find((restaurant) => restaurant.id === restaurantId);
@@ -82,63 +88,9 @@ export function Tips() {
     void loadData();
   }, []);
 
-  const totalTips = calculations.reduce((sum, calc) => sum + calc.totalTip, 0);
-
-  const totalVisits = calculations.length;
-
-  const averageTipAmount = totalVisits > 0 ? totalTips / totalVisits : 0;
-
-  const filteredCalculations =
-    selectedFilter === null
-      ? calculations
-      : calculations.filter(
-          (calculation) => calculation.restaurantId === selectedFilter,
-        );
-
-  const handleCalculateAndSave = async () => {
-    if (!selectedRestaurantId) {
-      alert("Please select a restaurant.");
-      return;
-    }
-
-    const restaurant = getRestaurant(selectedRestaurantId);
-
-    if (!restaurant) {
-      alert("Restaurant not found.");
-      return;
-    }
-
-    const bill = Number(billAmount);
-    const people = Number(numberOfPeople);
-
-    const totalTip = (bill * restaurant.tipPercentage) / 100;
-    const totalBill = bill + totalTip;
-    const perPerson = totalBill / people;
-
-    const calcService = new CalculationService();
-
-    await calcService.create({
-      restaurantId: restaurant.id!,
-      billAmount: bill,
-      tipPercentage: restaurant.tipPercentage,
-      numberOfPeople: people,
-      totalTip,
-      totalBill,
-      perPerson,
-      createdAt: new Date().toISOString(),
-    });
-
-    setIsCalculateSheetOpen(false);
-
-    setSelectedRestaurantId(null);
-    setBillAmount("");
-    setNumberOfPeople("1");
-
-    await loadData();
-  };
-
-  const handleUpdate = async () => {
-    if (!selectedCalculation?.id) return;
+  //Auto update Tip on-edit
+  useEffect(() => {
+    if (!selectedCalculation) return;
 
     const restaurant = getRestaurant(selectedCalculation.restaurantId);
 
@@ -151,19 +103,126 @@ export function Tips() {
 
     const perPerson = totalBill / selectedCalculation.numberOfPeople;
 
-    const calcService = new CalculationService();
-
-    await calcService.update(selectedCalculation.id, {
+    setSelectedCalculation({
       ...selectedCalculation,
       totalTip,
       totalBill,
       perPerson,
     });
+  }, [selectedCalculation?.billAmount, selectedCalculation?.numberOfPeople]);
 
-    setIsEditMode(false);
-    setIsViewSheetOpen(false);
+  const filteredCalculations =
+    selectedFilter === null
+      ? calculations
+      : calculations.filter(
+          (calculation) => calculation.restaurantId === selectedFilter,
+        );
 
-    await loadData();
+  const totalTips = filteredCalculations.reduce(
+    (sum, calc) => sum + calc.totalTip,
+    0,
+  );
+
+  const totalVisits = filteredCalculations.length;
+
+  const averageTipAmount = totalVisits > 0 ? totalTips / totalVisits : 0;
+
+  const handleCalculateAndSave = async () => {
+    try {
+      setCalculating(true)
+      if (!selectedRestaurantId) {
+        toast.warning("Please select a restaurant.");
+        return;
+      }
+
+      const restaurant = getRestaurant(selectedRestaurantId);
+
+      if (!restaurant) {
+        toast.error("Restaurant not found.");
+        return;
+      }
+
+      if (Number(billAmount) <= 0) {
+        toast.warning("Bill amount must be greater than 0.");
+        return;
+      }
+
+      if (Number(numberOfPeople) <= 0) {
+        toast.warning("Number of people must be at least 1.");
+        return;
+      }
+
+      const bill = Number(billAmount);
+      const people = Number(numberOfPeople);
+
+      const totalTip = (bill * restaurant.tipPercentage) / 100;
+      const totalBill = bill + totalTip;
+      const perPerson = Math.round(totalBill / people);
+
+      const calcService = new CalculationService();
+
+      await calcService.create({
+        restaurantId: restaurant.id!,
+        billAmount: bill,
+        tipPercentage: restaurant.tipPercentage,
+        numberOfPeople: people,
+        totalTip,
+        totalBill,
+        perPerson,
+        createdAt: new Date().toISOString(),
+      });
+
+      toast.success("Tip calculation saved.");
+
+      setIsCalculateSheetOpen(false);
+
+      setSelectedRestaurantId(null);
+      setBillAmount("");
+      setNumberOfPeople("1");
+
+      await loadData();
+    } catch (error) {
+      toast.warning("Failed to add tip");
+    } finally {
+      setCalculating(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      setSaving(true);
+      if (!selectedCalculation?.id) return;
+
+      const restaurant = getRestaurant(selectedCalculation.restaurantId);
+
+      if (!restaurant) return;
+
+      const totalTip =
+        (selectedCalculation.billAmount * restaurant.tipPercentage) / 100;
+
+      const totalBill = selectedCalculation.billAmount + totalTip;
+
+      const perPerson = (totalBill / selectedCalculation.numberOfPeople);
+
+      const calcService = new CalculationService();
+
+      await calcService.update(selectedCalculation.id, {
+        ...selectedCalculation,
+        totalTip,
+        totalBill,
+        perPerson,
+      });
+
+      toast.success("Tip updated successfully.");
+
+      setIsEditMode(false);
+      setIsViewSheetOpen(false);
+      await loadData();
+    } catch (error) {
+      toast.warning("Failed to updated tips.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -177,10 +236,15 @@ export function Tips() {
 
     await calcService.delete(id);
 
+    toast.success("Tip deleted.");
+
     setIsViewSheetOpen(false);
     setSelectedCalculation(null);
 
     await loadData();
+    if (filteredCalculations.length === 1 && selectedFilter !== null) {
+      setSelectedFilter(null);
+    }
   };
 
   return (
@@ -266,85 +330,106 @@ export function Tips() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCalculations.map((calculation) => {
-                const restaurant = getRestaurant(calculation.restaurantId);
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8}>
+                    <Skeleton className="h-10 w-full" />
+                  </TableCell>
+                </TableRow>
+              ) : filteredCalculations.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="text-center py-10 text-muted-foreground"
+                  >
+                    No tip calculations found. Calculate your first restaurant
+                    tip.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredCalculations.map((calculation) => {
+                  const restaurant = getRestaurant(calculation.restaurantId);
 
-                return (
-                  <TableRow key={calculation.id}>
-                    <TableCell>
-                      {new Date(calculation.createdAt).toLocaleDateString()}
-                    </TableCell>
+                  return (
+                    <TableRow key={calculation.id}>
+                      <TableCell>
+                        {new Date(calculation.createdAt).toLocaleDateString()}
+                      </TableCell>
 
-                    <TableCell>{restaurant?.name}</TableCell>
+                      <TableCell>{restaurant?.name}</TableCell>
 
-                    <TableCell>
-                      {restaurant?.currency} {calculation.billAmount}
-                    </TableCell>
+                      <TableCell>
+                        {formatCurrency(
+                          restaurant?.currency,
+                          calculation.billAmount,
+                        )}
+                      </TableCell>
 
-                    <TableCell>{calculation.tipPercentage}%</TableCell>
+                      <TableCell>{calculation.tipPercentage}%</TableCell>
 
-                    <TableCell>
-                      {restaurant?.currency} {calculation.totalTip}
-                    </TableCell>
+                      <TableCell>
+                        {restaurant?.currency} {calculation.totalTip}
+                      </TableCell>
 
-                    <TableCell>
-                      {restaurant?.currency} {calculation.perPerson}
-                    </TableCell>
+                      <TableCell>
+                        {restaurant?.currency} {calculation.perPerson}
+                      </TableCell>
 
-                    <TableCell>{calculation.numberOfPeople}</TableCell>
+                      <TableCell>{calculation.numberOfPeople}</TableCell>
 
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
 
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
-                          <DropdownMenuSeparator />
+                            <DropdownMenuSeparator />
 
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedCalculation(calculation);
-                              setIsEditMode(false);
-                              setIsViewSheetOpen(true);
-                            }}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedCalculation(calculation);
+                                setIsEditMode(false);
+                                setIsViewSheetOpen(true);
+                              }}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </DropdownMenuItem>
 
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedCalculation(calculation);
-                              setIsEditMode(true);
-                              setIsViewSheetOpen(true);
-                            }}
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedCalculation(calculation);
+                                setIsEditMode(true);
+                                setIsViewSheetOpen(true);
+                              }}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
 
-                          <DropdownMenuSeparator />
+                            <DropdownMenuSeparator />
 
-                          <DropdownMenuItem
-                            className="text-red-500"
-                            onClick={() =>
-                              calculation.id && handleDelete(calculation.id)
-                            }
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                            <DropdownMenuItem
+                              className="text-red-500"
+                              onClick={() =>
+                                calculation.id && handleDelete(calculation.id)
+                              }
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -372,7 +457,7 @@ export function Tips() {
 
                 {restaurants.map((restaurant) => (
                   <option key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
+                    {restaurant.name} 
                   </option>
                 ))}
               </select>
@@ -406,7 +491,7 @@ export function Tips() {
             </div>
 
             <Button className="w-full" onClick={handleCalculateAndSave}>
-              Calculate & Save
+             { calculating ? "calculating" : "Calculate & Save" }
             </Button>
           </div>
         </SheetContent>
@@ -490,8 +575,12 @@ export function Tips() {
 
               <div className="flex gap-3 pt-4">
                 {isEditMode ? (
-                  <Button className="flex-1" onClick={handleUpdate}>
-                    Save Changes
+                  <Button
+                    className="flex-1"
+                    onClick={handleUpdate}
+                    disabled={!selectedCalculation}
+                  >
+                    {saving ? "saving..." : "save changes"}
                   </Button>
                 ) : (
                   <Button
@@ -515,7 +604,9 @@ export function Tips() {
 
                 <Button
                   variant="outline"
-                  onClick={() => setIsViewSheetOpen(false)}
+                  onClick={() => {
+                    (setIsViewSheetOpen(false), setIsEditMode(false));
+                  }}
                 >
                   Close
                 </Button>
