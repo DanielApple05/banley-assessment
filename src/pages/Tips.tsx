@@ -10,6 +10,29 @@ export function Tips() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      const calcService = new CalculationService();
+      const restaurantService = new RestaurantService();
+
+      const calculationsData = await calcService.findAll();
+      const restaurantsData = await restaurantService.findAll();
+
+      setCalculations(calculationsData);
+      setRestaurants(restaurantsData);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadData();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
