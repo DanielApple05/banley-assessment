@@ -221,6 +221,10 @@ export function Tips() {
       setSaving(true);
       if (!selectedCalculation?.id) return;
 
+      if (selectedCalculation.numberOfPeople  <= 0 || selectedCalculation.billAmount <= 0) {
+        return toast.warning("Enter a valid number")
+      }
+
       const restaurant = getRestaurant(selectedCalculation.restaurantId);
 
       if (!restaurant) return;
@@ -660,6 +664,7 @@ export function Tips() {
                   <Input
                     type="number"
                     min={1}
+                    max={10}
                     disabled={!isEditMode}
                     value={selectedCalculation.numberOfPeople}
                     onChange={(e) =>
