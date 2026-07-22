@@ -137,6 +137,52 @@ export function Tips() {
     await loadData();
   };
 
+  const handleUpdate = async () => {
+    if (!selectedCalculation?.id) return;
+
+    const restaurant = getRestaurant(selectedCalculation.restaurantId);
+
+    if (!restaurant) return;
+
+    const totalTip =
+      (selectedCalculation.billAmount * restaurant.tipPercentage) / 100;
+
+    const totalBill = selectedCalculation.billAmount + totalTip;
+
+    const perPerson = totalBill / selectedCalculation.numberOfPeople;
+
+    const calcService = new CalculationService();
+
+    await calcService.update(selectedCalculation.id, {
+      ...selectedCalculation,
+      totalTip,
+      totalBill,
+      perPerson,
+    });
+
+    setIsEditMode(false);
+    setIsViewSheetOpen(false);
+
+    await loadData();
+  };
+
+  const handleDelete = async (id: number) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this tip?",
+    );
+
+    if (!confirmed) return;
+
+    const calcService = new CalculationService();
+
+    await calcService.delete(id);
+
+    setIsViewSheetOpen(false);
+    setSelectedCalculation(null);
+
+    await loadData();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap">
@@ -284,7 +330,12 @@ export function Tips() {
 
                           <DropdownMenuSeparator />
 
-                          <DropdownMenuItem className="text-red-500">
+                          <DropdownMenuItem
+                            className="text-red-500"
+                            onClick={() =>
+                              calculation.id && handleDelete(calculation.id)
+                            }
+                          >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
                           </DropdownMenuItem>
@@ -410,7 +461,7 @@ export function Tips() {
                   }
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Per Person</Label>
                 <Input disabled value={selectedCalculation.perPerson} />
@@ -439,7 +490,9 @@ export function Tips() {
 
               <div className="flex gap-3 pt-4">
                 {isEditMode ? (
-                  <Button className="flex-1">Save Changes</Button>
+                  <Button className="flex-1" onClick={handleUpdate}>
+                    Save Changes
+                  </Button>
                 ) : (
                   <Button
                     className="flex-1"
@@ -449,6 +502,16 @@ export function Tips() {
                     Edit
                   </Button>
                 )}
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    selectedCalculation?.id &&
+                    handleDelete(selectedCalculation.id)
+                  }
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
 
                 <Button
                   variant="outline"
