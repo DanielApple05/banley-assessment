@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   CalculationService,
-  TipCalculation,
+  type TipCalculation,
 } from "@/services/calculation.service";
-import { RestaurantService, Restaurant } from "@/services/restaurant.service";
+import {
+  RestaurantService,
+  type Restaurant,
+} from "@/services/restaurant.service";
 
 export function Tips() {
   const [calculations, setCalculations] = useState<TipCalculation[]>([]);
@@ -32,6 +35,12 @@ export function Tips() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  const totalTips = calculations.reduce((sum, calc) => sum + calc.totalTip, 0);
+
+  const totalVisits = calculations.length;
+
+  const averageTipAmount = totalVisits > 0 ? totalTips / totalVisits : 0;
 
   return (
     <div className="space-y-6">
