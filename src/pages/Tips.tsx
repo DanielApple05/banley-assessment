@@ -40,6 +40,7 @@ export function Tips() {
   >(null);
   const [billAmount, setBillAmount] = useState("");
   const [numberOfPeople, setNumberOfPeople] = useState("1");
+  const [selectedFilter, setSelectedFilter] = useState<number | null>(null);
 
   const getRestaurant = (restaurantId: number) => {
     return restaurants.find((restaurant) => restaurant.id === restaurantId);
@@ -73,6 +74,13 @@ export function Tips() {
   const totalVisits = calculations.length;
 
   const averageTipAmount = totalVisits > 0 ? totalTips / totalVisits : 0;
+  
+  const filteredCalculations =
+    selectedFilter === null
+      ? calculations
+      : calculations.filter(
+          (calculation) => calculation.restaurantId === selectedFilter,
+        );
 
   const handleCalculateAndSave = async () => {
     if (!selectedRestaurantId) {
@@ -155,6 +163,30 @@ export function Tips() {
         />
       </div>
 
+      <div className="flex items-center gap-3">
+        <select
+          className="rounded-md border px-3 py-2"
+          value={selectedFilter ?? ""}
+          onChange={(e) =>
+            setSelectedFilter(e.target.value ? Number(e.target.value) : null)
+          }
+        >
+          <option value="">All Restaurants</option>
+
+          {restaurants.map((restaurant) => (
+            <option key={restaurant.id} value={restaurant.id}>
+              {restaurant.name}
+            </option>
+          ))}
+        </select>
+
+        {selectedFilter !== null && (
+          <Button variant="outline" onClick={() => setSelectedFilter(null)}>
+            Clear Filter
+          </Button>
+        )}
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Tip History</CardTitle>
@@ -175,7 +207,7 @@ export function Tips() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {calculations.map((calculation) => {
+              {filteredCalculations.map((calculation) => {
                 const restaurant = getRestaurant(calculation.restaurantId);
 
                 return (
