@@ -19,11 +19,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 export function Tips() {
   const [calculations, setCalculations] = useState<TipCalculation[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCalculateSheetOpen, setIsCalculateSheetOpen] = useState(false);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState<
+    number | null
+  >(null);
+  const [billAmount, setBillAmount] = useState("");
+  const [numberOfPeople, setNumberOfPeople] = useState("1");
 
   const getRestaurant = (restaurantId: number) => {
     return restaurants.find((restaurant) => restaurant.id === restaurantId);
@@ -37,7 +53,6 @@ export function Tips() {
       const restaurantService = new RestaurantService();
 
       const calculationsData = await calcService.findAll();
-      console.log("Calculations:", calculationsData);
       const restaurantsData = await restaurantService.findAll();
 
       setCalculations(calculationsData);
@@ -59,6 +74,48 @@ export function Tips() {
 
   const averageTipAmount = totalVisits > 0 ? totalTips / totalVisits : 0;
 
+  const handleCalculateAndSave = async () => {
+    if (!selectedRestaurantId) {
+      alert("Please select a restaurant.");
+      return;
+    }
+
+    const restaurant = getRestaurant(selectedRestaurantId);
+
+    if (!restaurant) {
+      alert("Restaurant not found.");
+      return;
+    }
+
+    const bill = Number(billAmount);
+    const people = Number(numberOfPeople);
+
+    const totalTip = (bill * restaurant.tipPercentage) / 100;
+    const totalBill = bill + totalTip;
+    const perPerson = totalBill / people;
+
+    const calcService = new CalculationService();
+
+    await calcService.create({
+      restaurantId: restaurant.id!,
+      billAmount: bill,
+      tipPercentage: restaurant.tipPercentage,
+      numberOfPeople: people,
+      totalTip,
+      totalBill,
+      perPerson,
+      createdAt: new Date().toISOString(),
+    });
+
+    setIsCalculateSheetOpen(false);
+
+    setSelectedRestaurantId(null);
+    setBillAmount("");
+    setNumberOfPeople("1");
+
+    await loadData();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap">
@@ -69,7 +126,7 @@ export function Tips() {
           </p>
         </div>
 
-        <Button>
+        <Button onClick={() => setIsCalculateSheetOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Calculate Tip
         </Button>
@@ -153,6 +210,68 @@ export function Tips() {
           </Table>
         </CardContent>
       </Card>
+      <Sheet open={isCalculateSheetOpen} onOpenChange={setIsCalculateSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Calculate Tip</SheetTitle>
+            <SheetDescription>
+              Calculate and save a new restaurant tip.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4 px-4">
+            <div className="space-y-2">
+              <Label>Restaurant</Label>
+              <select
+                className="w-full rounded-md border px-3 py-2"
+                value={selectedRestaurantId ?? ""}
+                onChange={(e) =>
+                  setSelectedRestaurantId(Number(e.target.value))
+                }
+              >
+                <option value="">Select a restaurant</option>
+
+                {restaurants.map((restaurant) => (
+                  <option key={restaurant.id} value={restaurant.id}>
+                    {restaurant.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Bill Amount</Label>
+              <Input
+                type="number"
+                value={billAmount}
+                onChange={(e) => setBillAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tip Percentage</Label>
+              <Input
+                readOnly
+                value={
+                  getRestaurant(selectedRestaurantId ?? 0)?.tipPercentage ?? ""
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Number of People</Label>
+
+              <Input
+                type="number"
+                value={numberOfPeople}
+                onChange={(e) => setNumberOfPeople(e.target.value)}
+              />
+            </div>
+
+            <Button className="w-full" onClick={handleCalculateAndSave}>
+              Calculate & Save
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
