@@ -125,8 +125,8 @@ export function Restaurants() {
 
   // Create restaurant
   const handleCreate = async () => {
-    if (!formData.name.trim()) {
-      toast.warning("Restaurant name is required.");
+    if (!formData.name.trim() || !formData.city.trim() || !formData.state.trim() || !formData.currency ) {
+      toast.warning("All feilds is required.");
       return;
     }
 
@@ -435,7 +435,7 @@ export function Restaurants() {
                       });
                     }
                   }}
-                  placeholder="NGN or ₦"
+                  placeholder="USD or $"
                   maxLength={3}
                 />
               </div>
