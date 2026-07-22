@@ -7,6 +7,8 @@ import {
   RestaurantService,
   type Restaurant,
 } from "@/services/restaurant.service";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function Tips() {
   const [calculations, setCalculations] = useState<TipCalculation[]>([]);
@@ -44,12 +46,20 @@ export function Tips() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Tips</h2>
-        <p className="text-muted-foreground">
-          View all tip calculations and history.
-        </p>
+      <div className="flex items-center justify-between flex-wrap">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Tips</h2>
+          <p className="text-muted-foreground">
+            View all tip calculations and history.
+          </p>
+        </div>
+
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Calculate Tip
+        </Button>
       </div>
+
       <div className="rounded-lg border bg-card p-12 text-center text-muted-foreground">
         Tip history coming soon...
       </div>
