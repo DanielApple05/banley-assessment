@@ -37,6 +37,7 @@ export function Tips() {
       const restaurantService = new RestaurantService();
 
       const calculationsData = await calcService.findAll();
+      console.log("Calculations:", calculationsData);
       const restaurantsData = await restaurantService.findAll();
 
       setCalculations(calculationsData);
@@ -116,8 +117,39 @@ export function Tips() {
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
+            <TableBody>
+              {calculations.map((calculation) => {
+                const restaurant = getRestaurant(calculation.restaurantId);
 
-            <TableBody></TableBody>
+                return (
+                  <TableRow key={calculation.id}>
+                    <TableCell>
+                      {new Date(calculation.createdAt).toLocaleDateString()}
+                    </TableCell>
+
+                    <TableCell>{restaurant?.name}</TableCell>
+
+                    <TableCell>
+                      {restaurant?.currency} {calculation.billAmount}
+                    </TableCell>
+
+                    <TableCell>{calculation.tipPercentage}%</TableCell>
+
+                    <TableCell>
+                      {restaurant?.currency} {calculation.totalTip}
+                    </TableCell>
+
+                    <TableCell>
+                      {restaurant?.currency} {calculation.perPerson}
+                    </TableCell>
+
+                    <TableCell>{calculation.numberOfPeople}</TableCell>
+
+                    <TableCell className="text-right">Actions</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
           </Table>
         </CardContent>
       </Card>
