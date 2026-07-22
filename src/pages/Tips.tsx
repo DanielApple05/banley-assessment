@@ -11,11 +11,23 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export function Tips() {
   const [calculations, setCalculations] = useState<TipCalculation[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const getRestaurant = (restaurantId: number) => {
+    return restaurants.find((restaurant) => restaurant.id === restaurantId);
+  };
 
   const loadData = async () => {
     try {
@@ -85,9 +97,30 @@ export function Tips() {
         />
       </div>
 
-      <div className="rounded-lg border bg-card p-12 text-center text-muted-foreground">
-        Tip history coming soon...
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Tip History</CardTitle>
+        </CardHeader>
+
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Restaurant</TableHead>
+                <TableHead>Bill</TableHead>
+                <TableHead>Tip %</TableHead>
+                <TableHead>Total Tip</TableHead>
+                <TableHead>Per Person</TableHead>
+                <TableHead>People</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody></TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
