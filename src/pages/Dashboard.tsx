@@ -266,7 +266,7 @@ export function Dashboard() {
                     stroke="var(--background)"
                     strokeWidth={2}
                   >
-                    {visitsByRestaurant.map((entry, index) => (
+                    {visitsByRestaurant.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={CHART_COLORS[index % CHART_COLORS.length]}
@@ -322,7 +322,7 @@ export function Dashboard() {
                       stroke="var(--background)"
                       strokeWidth={2}
                     >
-                      {tipDistribution.map((entry, index) => (
+                      {tipDistribution.map((_, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={CHART_COLORS[index % CHART_COLORS.length]}

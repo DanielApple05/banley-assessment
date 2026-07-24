@@ -125,8 +125,8 @@ export function Restaurants() {
 
   // Create restaurant
   const handleCreate = async () => {
-    if (!formData.name.trim()) {
-      toast.warning("Restaurant name is required.");
+    if (!formData.name.trim() || !formData.city.trim() || !formData.state.trim() || !formData.currency ) {
+      toast.warning("All feilds is required.");
       return;
     }
 
@@ -420,13 +420,22 @@ export function Restaurants() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="currency">Currency</Label>
+
                 <Input
                   id="currency"
                   value={formData.currency}
-                  onChange={(e) =>
-                    setFormData({ ...formData, currency: e.target.value })
-                  }
-                  placeholder="$"
+                  onChange={(e) => {
+                    const value = e.target.value;
+
+                    // Allow only letters and common currency symbols
+                    if (/^[A-Za-z₦$€£¥₹₽₩₿]*$/.test(value)) {
+                      setFormData({
+                        ...formData,
+                        currency: value.toUpperCase(),
+                      });
+                    }
+                  }}
+                  placeholder="USD or $"
                   maxLength={3}
                 />
               </div>

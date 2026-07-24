@@ -11,6 +11,7 @@ export interface TipCalculation {
   perPerson: number;
   notes?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export class CalculationService extends BaseModel<TipCalculation> {
